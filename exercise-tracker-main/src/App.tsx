@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import Sidebar from './components/Sidebar';
 import HomePage from './components/HomePage';
 import CreateRoutine from './components/CreateRoutine';
@@ -64,6 +65,18 @@ function App() {
   return (
     <>
       <Sidebar currentApp={currentApp} onNavigateApp={handleNavigateApp} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
 
       {currentApp === 'exercise' && (
         <>

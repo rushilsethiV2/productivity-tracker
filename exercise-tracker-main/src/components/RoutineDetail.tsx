@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Trash2, Edit2, Play } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { Routine, Exercise } from '../types';
 import { getExerciseById, getExerciseImagePath } from '../services/exerciseService';
 import { deleteRoutine } from '../services/storageService';
@@ -11,16 +12,44 @@ interface RoutineDetailProps {
 }
 
 export default function RoutineDetail({ routine, onNavigate, onDelete }: RoutineDetailProps) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
   const handleDelete = () => {
-    deleteRoutine(routine.id);
-    onDelete();
-    onNavigate('home');
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p className="font-semibold mb-3">Delete "{routine.name}"?</p>
+          <p className="text-sm text-gray-400 mb-4">This action cannot be undone.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                deleteRoutine(routine.id);
+                onDelete();
+                closeToast();
+                toast.success('Routine deleted successfully');
+                onNavigate('home');
+              }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Delete
+            </button>
+            <button
+              onClick={closeToast}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        autoClose: false,
+        closeButton: false,
+        draggable: false,
+      }
+    );
   };
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -31,7 +60,7 @@ export default function RoutineDetail({ routine, onNavigate, onDelete }: Routine
           </button>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={handleDelete}
               className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
             >
               <Trash2 className="w-6 h-6" />
@@ -73,31 +102,6 @@ export default function RoutineDetail({ routine, onNavigate, onDelete }: Routine
             );
           })}
         </div>
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-6 max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Delete Routine?</h2>
-              <p className="text-gray-400 mb-6">
-                Are you sure you want to delete "{routine.name}"? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 bg-[rgb(var(--background))] border border-[rgb(var(--border))] hover:border-gray-500 py-3 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -115,11 +119,11 @@ function ExerciseCard({
   return (
     <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-4 hover:border-blue-500/50 transition-colors">
       <div className="flex gap-4">
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 w-24 h-24 bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
           <img
             src={getExerciseImagePath(exercise.id, 0)}
             alt={exercise.name}
-            className="w-24 h-24 object-cover rounded-lg"
+            className="w-full h-full object-contain"
             onError={(e) => {
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23333" width="100" height="100"/%3E%3Ctext fill="%23666" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}

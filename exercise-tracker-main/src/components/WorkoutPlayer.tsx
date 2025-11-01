@@ -143,7 +143,7 @@ export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProp
   }
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -183,7 +183,7 @@ export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProp
           <img
             src={getExerciseImagePath(currentExercise.id, imageIndex)}
             alt={currentExercise.name}
-            className="w-full h-96 object-cover"
+            className="w-full h-64 md:h-96 object-contain bg-gray-900"
             onError={(e) => {
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23333" width="400" height="400"/%3E%3Ctext fill="%23666" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}

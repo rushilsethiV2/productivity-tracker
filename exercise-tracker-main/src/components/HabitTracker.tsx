@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { Habit, HabitEntry } from '../types';
 import {
   loadHabits,
@@ -36,13 +37,42 @@ export default function HabitTracker() {
     addHabit(habit);
     refreshData();
     setShowAddModal(false);
+    toast.success('Habit added successfully!');
   };
 
-  const handleDeleteHabit = (id: string) => {
-    if (confirm('Are you sure you want to delete this habit?')) {
-      deleteHabit(id);
-      refreshData();
-    }
+  const handleDeleteHabit = (id: string, name: string) => {
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p className="font-semibold mb-3">Delete "{name}"?</p>
+          <p className="text-sm text-gray-400 mb-4">This will delete all tracking data for this habit.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                deleteHabit(id);
+                refreshData();
+                closeToast();
+                toast.success('Habit deleted successfully');
+              }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Delete
+            </button>
+            <button
+              onClick={closeToast}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        autoClose: false,
+        closeButton: false,
+        draggable: false,
+      }
+    );
   };
 
   const handleToggleHabit = (habitId: string, date: string, currentValue: boolean) => {
@@ -93,7 +123,7 @@ export default function HabitTracker() {
   const stats = getCompletionStats();
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -238,7 +268,7 @@ export default function HabitTracker() {
                     })}
                     <td className="p-4 text-center">
                       <button
-                        onClick={() => handleDeleteHabit(habit.id)}
+                        onClick={() => handleDeleteHabit(habit.id, habit.name)}
                         className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />

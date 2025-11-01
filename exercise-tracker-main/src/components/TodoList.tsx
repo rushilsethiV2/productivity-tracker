@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Check, Filter, Tag, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Check, Filter, Tag, Calendar as CalendarIcon, AlertCircle, Edit2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { Todo } from '../types';
 import { loadTodos, saveTodos, addTodo, updateTodo, deleteTodo, getCategories } from '../services/todoService';
 
 export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('all');
@@ -26,6 +29,20 @@ export default function TodoList() {
     addTodo(todo);
     refreshTodos();
     setShowAddModal(false);
+    toast.success('Todo added successfully!');
+  };
+
+  const handleEditTodo = (todo: Todo) => {
+    setEditingTodo(todo);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTodo = (updatedTodo: Todo) => {
+    updateTodo(updatedTodo);
+    refreshTodos();
+    setShowEditModal(false);
+    setEditingTodo(null);
+    toast.success('Todo updated successfully!');
   };
 
   const handleToggleTodo = (todo: Todo) => {
@@ -36,11 +53,42 @@ export default function TodoList() {
     };
     updateTodo(updated);
     refreshTodos();
+    toast.success(updated.completed ? 'Todo completed!' : 'Todo marked as active');
   };
 
-  const handleDeleteTodo = (id: string) => {
-    deleteTodo(id);
-    refreshTodos();
+  const handleDeleteTodo = (id: string, title: string) => {
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p className="font-semibold mb-3">Delete "{title}"?</p>
+          <p className="text-sm text-gray-400 mb-4">This action cannot be undone.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                deleteTodo(id);
+                refreshTodos();
+                closeToast();
+                toast.success('Todo deleted successfully');
+              }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Delete
+            </button>
+            <button
+              onClick={closeToast}
+              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        autoClose: false,
+        closeButton: false,
+        draggable: false,
+      }
+    );
   };
 
   const filteredTodos = todos.filter(todo => {
@@ -65,7 +113,7 @@ export default function TodoList() {
   };
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -158,6 +206,7 @@ export default function TodoList() {
                 key={todo.id}
                 todo={todo}
                 onToggle={handleToggleTodo}
+                onEdit={handleEditTodo}
                 onDelete={handleDeleteTodo}
               />
             ))
@@ -165,10 +214,24 @@ export default function TodoList() {
         </div>
 
         {showAddModal && (
-          <AddTodoModal
+          <TodoModal
             onClose={() => setShowAddModal(false)}
-            onAdd={handleAddTodo}
+            onSave={handleAddTodo}
             existingCategories={categories}
+            mode="add"
+          />
+        )}
+
+        {showEditModal && editingTodo && (
+          <TodoModal
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingTodo(null);
+            }}
+            onSave={handleUpdateTodo}
+            existingCategories={categories}
+            mode="edit"
+            initialTodo={editingTodo}
           />
         )}
       </div>
@@ -179,11 +242,13 @@ export default function TodoList() {
 function TodoItem({
   todo,
   onToggle,
+  onEdit,
   onDelete,
 }: {
   todo: Todo;
   onToggle: (todo: Todo) => void;
-  onDelete: (id: string) => void;
+  onEdit: (todo: Todo) => void;
+  onDelete: (id: string, title: string) => void;
 }) {
   const priorityColors = {
     high: 'text-red-400 bg-red-500/20 border-red-500',
@@ -220,12 +285,20 @@ function TodoItem({
             >
               {todo.title}
             </h3>
-            <button
-              onClick={() => onDelete(todo.id)}
-              className="flex-shrink-0 p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onEdit(todo)}
+                className="flex-shrink-0 p-2 hover:bg-yellow-500/20 text-yellow-400 rounded-lg transition-colors"
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => onDelete(todo.id, todo.title)}
+                className="flex-shrink-0 p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {todo.description && (
@@ -264,27 +337,38 @@ function TodoItem({
   );
 }
 
-function AddTodoModal({
+function TodoModal({
   onClose,
-  onAdd,
+  onSave,
   existingCategories,
+  mode,
+  initialTodo,
 }: {
   onClose: () => void;
-  onAdd: (todo: Todo) => void;
+  onSave: (todo: Todo) => void;
   existingCategories: string[];
+  mode: 'add' | 'edit';
+  initialTodo?: Todo;
 }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-  const [dueDate, setDueDate] = useState('');
+  const [title, setTitle] = useState(initialTodo?.title || '');
+  const [description, setDescription] = useState(initialTodo?.description || '');
+  const [category, setCategory] = useState(initialTodo?.category || '');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(initialTodo?.priority || 'medium');
+  const [dueDate, setDueDate] = useState(initialTodo?.dueDate || '');
   const [useNewCategory, setUseNewCategory] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !category.trim()) return;
 
-    const todo: Todo = {
+    const todo: Todo = mode === 'edit' && initialTodo ? {
+      ...initialTodo,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      category: category.trim(),
+      priority,
+      dueDate: dueDate || undefined,
+    } : {
       id: Date.now().toString(),
       title: title.trim(),
       description: description.trim() || undefined,
@@ -295,7 +379,7 @@ function AddTodoModal({
       dueDate: dueDate || undefined,
     };
 
-    onAdd(todo);
+    onSave(todo);
   };
 
   return (
@@ -303,7 +387,7 @@ function AddTodoModal({
       <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Add New Todo</h2>
+            <h2 className="text-2xl font-bold">{mode === 'edit' ? 'Edit Todo' : 'Add New Todo'}</h2>
             <button
               type="button"
               onClick={onClose}
@@ -430,7 +514,7 @@ function AddTodoModal({
               type="submit"
               className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-3 rounded-lg transition-all font-semibold"
             >
-              Add Todo
+              {mode === 'edit' ? 'Update Todo' : 'Add Todo'}
             </button>
           </div>
         </form>

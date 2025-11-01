@@ -11,7 +11,7 @@ export default function HomePage({ routines, onNavigate }: HomePageProps) {
   const weeklyRoutines = routines.filter(r => r.type === 'weekly');
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-4xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-2">

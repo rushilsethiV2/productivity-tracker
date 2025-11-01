@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Search, Trash2, Calendar, Clock } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { Exercise, Routine, RoutineExercise } from '../types';
 import { loadExercises, getExerciseImagePath } from '../services/exerciseService';
 import { addRoutine } from '../services/storageService';
@@ -49,8 +50,13 @@ export default function CreateRoutine({ onNavigate }: CreateRoutineProps) {
   };
 
   const saveRoutine = () => {
-    if (!routineName.trim() || selectedExercises.length === 0) {
-      alert('Please provide a routine name and add at least one exercise');
+    if (!routineName.trim()) {
+      toast.error('Please provide a routine name');
+      return;
+    }
+
+    if (selectedExercises.length === 0) {
+      toast.error('Please add at least one exercise');
       return;
     }
 
@@ -63,11 +69,12 @@ export default function CreateRoutine({ onNavigate }: CreateRoutineProps) {
     };
 
     addRoutine(routine);
+    toast.success('Routine created successfully!');
     onNavigate('home');
   };
 
   return (
-    <div className="min-h-screen p-6 pb-24 pl-24">
+    <div className="min-h-screen p-6 pb-24 md:pl-24">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button
@@ -197,14 +204,16 @@ export default function CreateRoutine({ onNavigate }: CreateRoutineProps) {
                       onClick={() => addExercise(exercise)}
                       className="bg-[rgb(var(--background))] border border-[rgb(var(--border))] rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-all"
                     >
-                      <img
-                        src={getExerciseImagePath(exercise.id, 0)}
-                        alt={exercise.name}
-                        className="w-full h-40 object-cover rounded-lg mb-3"
-                        onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext fill="%23666" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
+                      <div className="w-full h-40 bg-gray-900 rounded-lg mb-3 overflow-hidden flex items-center justify-center">
+                        <img
+                          src={getExerciseImagePath(exercise.id, 0)}
+                          alt={exercise.name}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext fill="%23666" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
                       <h3 className="font-semibold mb-1">{exercise.name}</h3>
                       <div className="flex flex-wrap gap-1">
                         {exercise.primaryMuscles.map(muscle => (
