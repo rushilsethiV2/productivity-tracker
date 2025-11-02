@@ -1,4 +1,4 @@
-import { Dumbbell, CheckSquare, Calendar, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Dumbbell, CheckSquare, Calendar, ChevronRight, ChevronLeft, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 
 interface SidebarProps {
@@ -10,6 +10,7 @@ export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const apps = [
+    { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, color: 'purple' },
     { id: 'exercise', name: 'Exercise Tracker', icon: Dumbbell, color: 'blue' },
     { id: 'todos', name: 'Todo List', icon: CheckSquare, color: 'yellow' },
     { id: 'habits', name: 'Habit Tracker', icon: Calendar, color: 'green' },
@@ -17,6 +18,7 @@ export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
 
   const getActiveColor = (color: string) => {
     const colors = {
+      purple: 'from-violet-500 to-fuchsia-500',
       blue: 'from-blue-500 to-cyan-500',
       yellow: 'from-yellow-500 to-orange-500',
       green: 'from-green-500 to-emerald-500',
@@ -26,6 +28,7 @@ export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
 
   const getHoverColor = (color: string) => {
     const colors = {
+      purple: 'hover:border-violet-500',
       blue: 'hover:border-blue-500',
       yellow: 'hover:border-yellow-500',
       green: 'hover:border-green-500',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 import HomePage from './components/HomePage';
 import CreateRoutine from './components/CreateRoutine';
 import WorkoutPlayer from './components/WorkoutPlayer';
@@ -12,10 +13,10 @@ import { loadRoutines, getRoutineById } from './services/storageService';
 import { loadExercises } from './services/exerciseService';
 
 type Page = 'home' | 'create' | 'workout' | 'routine-detail';
-type AppType = 'exercise' | 'todos' | 'habits';
+type AppType = 'dashboard' | 'exercise' | 'todos' | 'habits';
 
 function App() {
-  const [currentApp, setCurrentApp] = useState<AppType>('exercise');
+  const [currentApp, setCurrentApp] = useState<AppType>('dashboard');
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null);
@@ -77,6 +78,8 @@ function App() {
         pauseOnHover
         theme="dark"
       />
+
+      {currentApp === 'dashboard' && <Dashboard />}
 
       {currentApp === 'exercise' && (
         <>
