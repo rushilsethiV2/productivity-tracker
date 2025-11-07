@@ -21,6 +21,7 @@ interface Quadrant {
 
 export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
   const [draggedTodo, setDraggedTodo] = useState<Todo | null>(null);
+  const [dragOverQuadrant, setDragOverQuadrant] = useState<QuadrantType | null>(null);
 
   const quadrants: Quadrant[] = [
     {
@@ -80,21 +81,42 @@ export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
 
   const handleDragStart = (e: DragEvent, todo: Todo) => {
     setDraggedTodo(todo);
-    e.dataTransfer.effectAllowed = 'move';
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', e.currentTarget as any);
+    }
   };
 
-  const handleDragOver = (e: DragEvent) => {
+  const handleDragOver = (e: DragEvent, quadrantId: QuadrantType) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    setDragOverQuadrant(quadrantId);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = (e as any).clientX;
+    const y = (e as any).clientY;
+
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setDragOverQuadrant(null);
+    }
   };
 
   const handleDrop = (e: DragEvent, targetQuadrant: QuadrantType) => {
     e.preventDefault();
+    e.stopPropagation();
 
-    if (!draggedTodo) return;
+    if (!draggedTodo) {
+      setDragOverQuadrant(null);
+      return;
+    }
 
     const currentQuadrant = categorizeTodo(draggedTodo);
     if (currentQuadrant === targetQuadrant) {
+      setDragOverQuadrant(null);
       setDraggedTodo(null);
       return;
     }
@@ -132,12 +154,14 @@ export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
 
     updateTodo(updatedTodo);
     setDraggedTodo(null);
+    setDragOverQuadrant(null);
     onUpdate();
     toast.success('Task moved successfully');
   };
 
   const handleDragEnd = () => {
     setDraggedTodo(null);
+    setDragOverQuadrant(null);
   };
 
   const handleDeleteTodo = (id: string, title: string) => {
@@ -186,13 +210,19 @@ export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {quadrants.map(quadrant => {
           const quadrantTodos = getTodosForQuadrant(quadrant.id);
+          const isDropTarget = dragOverQuadrant === quadrant.id && draggedTodo;
 
           return (
             <div
               key={quadrant.id}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, quadrant.id)}
+              onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, quadrant.id)}
-              className={`bg-gradient-to-br ${quadrant.color} border-2 ${quadrant.borderColor} rounded-xl p-4 min-h-[300px]`}
+              className={`bg-gradient-to-br ${quadrant.color} border-2 ${quadrant.borderColor} rounded-xl p-4 min-h-[300px] transition-all duration-200 ${
+                isDropTarget
+                  ? 'ring-2 ring-offset-2 ring-offset-[rgb(var(--background))] scale-105'
+                  : ''
+              } ${draggedTodo && dragOverQuadrant !== quadrant.id ? 'opacity-50' : ''}`}
             >
               <div className="mb-4">
                 <h3 className="text-lg font-bold mb-1">{quadrant.title}</h3>
@@ -243,6 +273,8 @@ interface KanbanCardProps {
 }
 
 function KanbanCard({ todo, onDragStart, onDragEnd, onDelete, isUrgent }: KanbanCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
+
   const priorityColors = {
     high: 'text-red-400 bg-red-500/20',
     medium: 'text-yellow-400 bg-yellow-500/20',
@@ -254,9 +286,19 @@ function KanbanCard({ todo, onDragStart, onDragEnd, onDelete, isUrgent }: Kanban
   return (
     <div
       draggable
-      onDragStart={(e) => onDragStart(e, todo)}
-      onDragEnd={onDragEnd}
-      className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-lg p-3 cursor-move hover:border-opacity-70 transition-all hover:scale-102 hover:shadow-lg"
+      onDragStart={(e) => {
+        setIsDragging(true);
+        onDragStart(e, todo);
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd();
+      }}
+      className={`bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-lg p-3 cursor-move transition-all hover:scale-105 hover:shadow-lg ${
+        isDragging
+          ? 'opacity-60 scale-95 border-dashed'
+          : 'hover:border-opacity-70'
+      }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h4 className="font-semibold text-sm flex-1">{todo.title}</h4>

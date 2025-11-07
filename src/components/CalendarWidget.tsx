@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Dumbbell, Target } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Dumbbell, Target, X } from 'lucide-react';
 import { Todo, Habit, Routine } from '../types';
 import { getHabitEntry } from '../services/habitService';
 
@@ -19,6 +19,7 @@ export default function CalendarWidget({
   onDateChange,
 }: CalendarWidgetProps) {
   const [viewDate, setViewDate] = useState(new Date());
+  const [tooltipDate, setTooltipDate] = useState<string | null>(null);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -48,9 +49,12 @@ export default function CalendarWidget({
     );
 
     return {
-      todos: todosForDay.length,
-      habits: habitsForDay.length,
-      routines: routinesForDay.length,
+      todos: todosForDay,
+      habits: habitsForDay,
+      routines: routinesForDay,
+      todosCount: todosForDay.length,
+      habitsCount: habitsForDay.length,
+      routinesCount: routinesForDay.length,
       hasActivity: todosForDay.length > 0 || habitsForDay.length > 0 || routinesForDay.length > 0,
     };
   };
@@ -124,7 +128,7 @@ export default function CalendarWidget({
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1 relative">
         {calendarDays.map((day, index) => {
           if (day === null) {
             return <div key={`empty-${index}`} className="aspect-square" />;
@@ -135,43 +139,90 @@ export default function CalendarWidget({
           const isToday = date.toDateString() === today.toDateString();
           const isSelected = dateStr === selectedDateStr;
           const activities = getActivitiesForDate(date);
+          const showTooltip = tooltipDate === dateStr;
 
           return (
-            <button
-              key={day}
-              onClick={() => onDateChange(date)}
-              className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all relative group ${
-                isToday
-                  ? 'bg-blue-500/20 border border-blue-500 text-blue-400 font-bold'
-                  : isSelected
-                  ? 'bg-yellow-500/20 border border-yellow-500 text-yellow-400'
-                  : 'hover:bg-[rgb(var(--background))] border border-transparent'
-              }`}
-            >
-              <span>{day}</span>
-              {activities.hasActivity && (
-                <div className="flex gap-0.5 mt-0.5">
-                  {activities.todos > 0 && (
-                    <div className="w-1 h-1 rounded-full bg-yellow-400" />
-                  )}
-                  {activities.habits > 0 && (
-                    <div className="w-1 h-1 rounded-full bg-green-400" />
-                  )}
-                  {activities.routines > 0 && (
-                    <div className="w-1 h-1 rounded-full bg-blue-400" />
-                  )}
-                </div>
-              )}
-              {activities.hasActivity && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                  <div className="bg-black/90 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                    {activities.todos > 0 && <div>{activities.todos} task(s)</div>}
-                    {activities.habits > 0 && <div>{activities.habits} habit(s)</div>}
-                    {activities.routines > 0 && <div>{activities.routines} workout(s)</div>}
+            <div key={day} className="relative">
+              <button
+                onClick={() => onDateChange(date)}
+                onMouseEnter={() => activities.hasActivity && setTooltipDate(dateStr)}
+                onMouseLeave={() => setTooltipDate(null)}
+                className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all relative w-full ${
+                  isToday
+                    ? 'bg-blue-500/20 border border-blue-500 text-blue-400 font-bold'
+                    : isSelected
+                    ? 'bg-yellow-500/20 border border-yellow-500 text-yellow-400'
+                    : 'hover:bg-[rgb(var(--background))] border border-transparent'
+                }`}
+              >
+                <span>{day}</span>
+                {activities.hasActivity && (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {activities.todosCount > 0 && (
+                      <div className="w-1 h-1 rounded-full bg-yellow-400" />
+                    )}
+                    {activities.habitsCount > 0 && (
+                      <div className="w-1 h-1 rounded-full bg-green-400" />
+                    )}
+                    {activities.routinesCount > 0 && (
+                      <div className="w-1 h-1 rounded-full bg-blue-400" />
+                    )}
+                  </div>
+                )}
+              </button>
+
+              {showTooltip && activities.hasActivity && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64">
+                  <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-lg shadow-xl p-3 space-y-2">
+                    {activities.todosCount > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-medium text-yellow-400">
+                          <Target className="w-3 h-3" />
+                          Tasks ({activities.todosCount})
+                        </div>
+                        <div className="ml-5 space-y-0.5">
+                          {activities.todos.map(todo => (
+                            <p key={todo.id} className="text-xs text-gray-300 truncate">
+                              {todo.title}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {activities.habitsCount > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-medium text-green-400">
+                          <CheckCircle className="w-3 h-3" />
+                          Habits ({activities.habitsCount})
+                        </div>
+                        <div className="ml-5 space-y-0.5">
+                          {activities.habits.map(habit => (
+                            <p key={habit.id} className="text-xs text-gray-300 truncate">
+                              {habit.name}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {activities.routinesCount > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-medium text-blue-400">
+                          <Dumbbell className="w-3 h-3" />
+                          Workouts ({activities.routinesCount})
+                        </div>
+                        <div className="ml-5 space-y-0.5">
+                          {activities.routines.map(routine => (
+                            <p key={routine.id} className="text-xs text-gray-300 truncate">
+                              {routine.name}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -181,27 +232,27 @@ export default function CalendarWidget({
           {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <div className="space-y-2">
-          {getActivitiesForDate(currentDate).todos > 0 && (
+          {getActivitiesForDate(currentDate).todosCount > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <Target className="w-4 h-4 text-yellow-400" />
               <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).todos} task(s) due
+                {getActivitiesForDate(currentDate).todosCount} task(s) due
               </span>
             </div>
           )}
-          {getActivitiesForDate(currentDate).habits > 0 && (
+          {getActivitiesForDate(currentDate).habitsCount > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle className="w-4 h-4 text-green-400" />
               <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).habits} habit(s) completed
+                {getActivitiesForDate(currentDate).habitsCount} habit(s) completed
               </span>
             </div>
           )}
-          {getActivitiesForDate(currentDate).routines > 0 && (
+          {getActivitiesForDate(currentDate).routinesCount > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <Dumbbell className="w-4 h-4 text-blue-400" />
               <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).routines} workout(s)
+                {getActivitiesForDate(currentDate).routinesCount} workout(s)
               </span>
             </div>
           )}
