@@ -58,19 +58,54 @@ export default function MarkdownEditor({ note, onUpdate }: MarkdownEditorProps) 
 
     html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
     html = html.replace(/`(.+?)`/g, '<code class="bg-gray-800 px-2 py-1 rounded text-sm text-blue-300">$1</code>');
 
-    html = html.replace(/^\> (.+$)/gim, '<blockquote class="border-l-4 border-blue-500 pl-4 py-2 my-2 italic text-gray-300">$1</blockquote>');
-
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>');
 
-    html = html.replace(/^\* (.+$)/gim, '<li class="ml-4">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/s, '<ul class="list-disc my-2">$1</ul>');
+    const lines = html.split('\n');
+    const processedLines: string[] = [];
+    let inUnorderedList = false;
+    let inOrderedList = false;
+    let inBlockquote = false;
 
-    html = html.replace(/^\d+\. (.+$)/gim, '<li class="ml-4">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/s, '<ol class="list-decimal my-2">$1</ol>');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.match(/^\* (.+)/)) {
+        if (!inUnorderedList) {
+          processedLines.push('<ul class="list-disc my-2 ml-6">');
+          inUnorderedList = true;
+        }
+        processedLines.push(`<li>${line.substring(2)}</li>`);
+      } else if (line.match(/^\d+\. (.+)/)) {
+        if (!inOrderedList) {
+          processedLines.push('<ol class="list-decimal my-2 ml-6">');
+          inOrderedList = true;
+        }
+        processedLines.push(`<li>${line.replace(/^\d+\.\s/, '')}</li>`);
+      } else if (line.match(/^\> (.+)/)) {
+        const content = line.substring(2);
+        processedLines.push(`<blockquote class="border-l-4 border-blue-500 pl-4 py-2 my-2 italic text-gray-300">${content}</blockquote>`);
+      } else {
+        if (inUnorderedList) {
+          processedLines.push('</ul>');
+          inUnorderedList = false;
+        }
+        if (inOrderedList) {
+          processedLines.push('</ol>');
+          inOrderedList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+
+    if (inUnorderedList) processedLines.push('</ul>');
+    if (inOrderedList) processedLines.push('</ol>');
+
+    html = processedLines.join('\n');
+
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
     html = html.replace(/\n\n/g, '</p><p class="mb-3">');
     html = '<p class="mb-3">' + html + '</p>';

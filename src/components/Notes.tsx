@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu, BookOpen, Plus, Trash2, Edit2, X, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { NoteCollection, Note } from '../types';
@@ -24,6 +24,7 @@ export default function Notes() {
   const [showCollectionMenu, setShowCollectionMenu] = useState<string | null>(null);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showAddCollectionModal, setShowAddCollectionModal] = useState(false);
 
   useEffect(() => {
     refreshData();
@@ -47,8 +48,7 @@ export default function Notes() {
     }
   };
 
-  const handleAddCollection = () => {
-    const name = prompt('Enter collection name:');
+  const handleAddCollection = (name: string) => {
     if (!name?.trim()) return;
 
     const collection: NoteCollection = {
@@ -59,6 +59,7 @@ export default function Notes() {
 
     addCollection(collection);
     refreshData();
+    setShowAddCollectionModal(false);
     toast.success('Collection created!');
   };
 
@@ -203,7 +204,7 @@ export default function Notes() {
             <h2 className="font-semibold">Collections</h2>
           </div>
           <button
-            onClick={handleAddCollection}
+            onClick={() => setShowAddCollectionModal(true)}
             className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -385,7 +386,7 @@ export default function Notes() {
                 </p>
                 {collections.length === 0 ? (
                   <button
-                    onClick={handleAddCollection}
+                    onClick={() => setShowAddCollectionModal(true)}
                     className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl transition-all font-semibold"
                   >
                     Create First Collection
@@ -419,6 +420,78 @@ export default function Notes() {
           onConfirm={handleConfirmRename}
         />
       )}
+
+      {showAddCollectionModal && (
+        <AddCollectionModal
+          onClose={() => setShowAddCollectionModal(false)}
+          onConfirm={handleAddCollection}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddCollectionModal({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void;
+  onConfirm: (name: string) => void;
+}) {
+  const [name, setName] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      onConfirm(name.trim());
+      setName('');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+      <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl max-w-md w-full">
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">New Collection</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Collection Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter collection name..."
+              className="w-full bg-[rgb(var(--background))] border border-[rgb(var(--border))] rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-[rgb(var(--background))] border border-[rgb(var(--border))] hover:border-gray-500 py-3 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 rounded-lg transition-all font-semibold"
+            >
+              Create
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
