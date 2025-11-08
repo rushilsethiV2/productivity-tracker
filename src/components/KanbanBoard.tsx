@@ -100,7 +100,7 @@ export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
     const x = (e as any).clientX;
     const y = (e as any).clientY;
 
-    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+    if (x < rect.left - 10 || x > rect.right + 10 || y < rect.top - 10 || y > rect.bottom + 10) {
       setDragOverQuadrant(null);
     }
   };
@@ -111,6 +111,7 @@ export default function KanbanBoard({ todos, onUpdate }: KanbanBoardProps) {
 
     if (!draggedTodo) {
       setDragOverQuadrant(null);
+      setDraggedTodo(null);
       return;
     }
 
