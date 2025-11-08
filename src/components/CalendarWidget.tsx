@@ -34,19 +34,49 @@ export default function CalendarWidget({
 
   const getActivitiesForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDay = new Date(date);
+    selectedDay.setHours(0, 0, 0, 0);
+    const isFutureDate = selectedDay > today;
+    const isToday = selectedDay.getTime() === today.getTime();
 
     const todosForDay = todos.filter(t =>
       !t.completed && t.dueDate && t.dueDate.split('T')[0] === dateStr
     );
 
-    const habitsForDay = habits.filter(h => {
-      const entry = getHabitEntry(h.id, dateStr);
-      return entry?.completed;
-    });
+    let habitsForDay: Habit[] = [];
+    let habitsCompleted = 0;
+    let habitsPending = 0;
 
-    const routinesForDay = routines.filter(r =>
-      r.lastPerformed && r.lastPerformed.split('T')[0] === dateStr
-    );
+    if (!isFutureDate) {
+      const completedHabits = habits.filter(h => {
+        const entry = getHabitEntry(h.id, dateStr);
+        return entry?.completed;
+      });
+      habitsForDay = completedHabits;
+      habitsCompleted = completedHabits.length;
+
+      if (isToday) {
+        habitsPending = habits.length - habitsCompleted;
+      }
+    }
+
+    let routinesForDay: Routine[] = [];
+    let routinesCompleted = 0;
+    let routinesPending = 0;
+
+    if (!isFutureDate) {
+      const completedRoutines = routines.filter(r =>
+        r.lastPerformed && r.lastPerformed.split('T')[0] === dateStr
+      );
+      routinesForDay = completedRoutines;
+      routinesCompleted = completedRoutines.length;
+
+      if (isToday && routines.length > 0) {
+        routinesPending = routines.length - routinesCompleted;
+      }
+    }
 
     return {
       todos: todosForDay,
@@ -54,8 +84,16 @@ export default function CalendarWidget({
       routines: routinesForDay,
       todosCount: todosForDay.length,
       habitsCount: habitsForDay.length,
+      habitsCompleted,
+      habitsPending,
       routinesCount: routinesForDay.length,
-      hasActivity: todosForDay.length > 0 || habitsForDay.length > 0 || routinesForDay.length > 0,
+      routinesCompleted,
+      routinesPending,
+      totalHabits: habits.length,
+      totalRoutines: routines.length,
+      hasActivity: todosForDay.length > 0 || habitsForDay.length > 0 || routinesForDay.length > 0 || (isToday && (habitsPending > 0 || routinesPending > 0)),
+      isFutureDate,
+      isToday,
     };
   };
 
@@ -161,11 +199,19 @@ export default function CalendarWidget({
                     {activities.todosCount > 0 && (
                       <div className="w-1 h-1 rounded-full bg-yellow-400" />
                     )}
-                    {activities.habitsCount > 0 && (
-                      <div className="w-1 h-1 rounded-full bg-green-400" />
+                    {(activities.habitsCompleted > 0 || activities.habitsPending > 0) && (
+                      <div className={`w-1 h-1 rounded-full ${
+                        activities.isToday && activities.habitsPending > 0
+                          ? 'bg-orange-400'
+                          : 'bg-green-400'
+                      }`} />
                     )}
-                    {activities.routinesCount > 0 && (
-                      <div className="w-1 h-1 rounded-full bg-blue-400" />
+                    {(activities.routinesCompleted > 0 || activities.routinesPending > 0) && (
+                      <div className={`w-1 h-1 rounded-full ${
+                        activities.isToday && activities.routinesPending > 0
+                          ? 'bg-cyan-400'
+                          : 'bg-blue-400'
+                      }`} />
                     )}
                   </div>
                 )}
@@ -178,7 +224,7 @@ export default function CalendarWidget({
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs font-medium text-yellow-400">
                           <Target className="w-3 h-3" />
-                          Tasks ({activities.todosCount})
+                          Tasks ({activities.todosCount} pending)
                         </div>
                         <div className="ml-5 space-y-0.5">
                           {activities.todos.map(todo => (
@@ -189,34 +235,38 @@ export default function CalendarWidget({
                         </div>
                       </div>
                     )}
-                    {activities.habitsCount > 0 && (
+                    {(activities.habitsCompleted > 0 || activities.habitsPending > 0) && (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs font-medium text-green-400">
                           <CheckCircle className="w-3 h-3" />
-                          Habits ({activities.habitsCount})
+                          Habits ({activities.habitsCompleted}/{activities.totalHabits} {activities.isToday ? 'completed' : 'done'})
                         </div>
-                        <div className="ml-5 space-y-0.5">
-                          {activities.habits.map(habit => (
-                            <p key={habit.id} className="text-xs text-gray-300 truncate">
-                              {habit.name}
-                            </p>
-                          ))}
-                        </div>
+                        {activities.habits.length > 0 && (
+                          <div className="ml-5 space-y-0.5">
+                            {activities.habits.map(habit => (
+                              <p key={habit.id} className="text-xs text-gray-300 truncate">
+                                {habit.name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {activities.routinesCount > 0 && (
+                    {(activities.routinesCompleted > 0 || activities.routinesPending > 0) && (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs font-medium text-blue-400">
                           <Dumbbell className="w-3 h-3" />
-                          Workouts ({activities.routinesCount})
+                          Workouts ({activities.routinesCompleted}/{activities.totalRoutines} {activities.isToday ? 'completed' : 'done'})
                         </div>
-                        <div className="ml-5 space-y-0.5">
-                          {activities.routines.map(routine => (
-                            <p key={routine.id} className="text-xs text-gray-300 truncate">
-                              {routine.name}
-                            </p>
-                          ))}
-                        </div>
+                        {activities.routines.length > 0 && (
+                          <div className="ml-5 space-y-0.5">
+                            {activities.routines.map(routine => (
+                              <p key={routine.id} className="text-xs text-gray-300 truncate">
+                                {routine.name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -228,37 +278,106 @@ export default function CalendarWidget({
       </div>
 
       <div className="mt-4 pt-4 border-t border-[rgb(var(--border))]">
-        <p className="text-xs font-medium text-gray-400 mb-2">
+        <p className="text-xs font-medium text-gray-400 mb-3">
           {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <div className="space-y-2">
-          {getActivitiesForDate(currentDate).todosCount > 0 && (
-            <div className="flex items-center gap-2 text-xs">
-              <Target className="w-4 h-4 text-yellow-400" />
-              <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).todosCount} task(s) due
-              </span>
-            </div>
-          )}
-          {getActivitiesForDate(currentDate).habitsCount > 0 && (
-            <div className="flex items-center gap-2 text-xs">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).habitsCount} habit(s) completed
-              </span>
-            </div>
-          )}
-          {getActivitiesForDate(currentDate).routinesCount > 0 && (
-            <div className="flex items-center gap-2 text-xs">
-              <Dumbbell className="w-4 h-4 text-blue-400" />
-              <span className="text-gray-300">
-                {getActivitiesForDate(currentDate).routinesCount} workout(s)
-              </span>
-            </div>
-          )}
-          {!getActivitiesForDate(currentDate).hasActivity && (
-            <p className="text-xs text-gray-500">No activities for this day</p>
-          )}
+          {(() => {
+            const activities = getActivitiesForDate(currentDate);
+
+            if (activities.isFutureDate) {
+              if (activities.todosCount > 0) {
+                return (
+                  <>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Target className="w-4 h-4 text-yellow-400" />
+                      <span className="text-gray-300">
+                        {activities.todosCount} task(s) scheduled
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 italic">Progress tracking available after completion</p>
+                  </>
+                );
+              }
+              return <p className="text-xs text-gray-500">No tasks scheduled for this day</p>;
+            }
+
+            const hasAnyActivity = activities.todosCount > 0 ||
+                                   activities.habitsCompleted > 0 ||
+                                   activities.habitsPending > 0 ||
+                                   activities.routinesCompleted > 0 ||
+                                   activities.routinesPending > 0;
+
+            if (!hasAnyActivity) {
+              return <p className="text-xs text-gray-500">No activities for this day</p>;
+            }
+
+            return (
+              <>
+                {activities.todosCount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Target className="w-4 h-4 text-yellow-400" />
+                      <span className="text-gray-300">Tasks</span>
+                    </div>
+                    <span className="text-xs font-medium text-yellow-400">
+                      {activities.todosCount} pending
+                    </span>
+                  </div>
+                )}
+
+                {(activities.habitsCompleted > 0 || activities.habitsPending > 0) && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <span className="text-gray-300">Habits</span>
+                    </div>
+                    <span className="text-xs font-medium">
+                      <span className="text-green-400">{activities.habitsCompleted}</span>
+                      <span className="text-gray-500">/</span>
+                      <span className="text-gray-400">{activities.totalHabits}</span>
+                      {activities.isToday && activities.habitsPending > 0 && (
+                        <span className="text-orange-400 ml-1">({activities.habitsPending} left)</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {(activities.routinesCompleted > 0 || activities.routinesPending > 0) && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Dumbbell className="w-4 h-4 text-blue-400" />
+                      <span className="text-gray-300">Workouts</span>
+                    </div>
+                    <span className="text-xs font-medium">
+                      <span className="text-blue-400">{activities.routinesCompleted}</span>
+                      <span className="text-gray-500">/</span>
+                      <span className="text-gray-400">{activities.totalRoutines}</span>
+                      {activities.isToday && activities.routinesPending > 0 && (
+                        <span className="text-orange-400 ml-1">({activities.routinesPending} left)</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {activities.isToday && (
+                  <div className="mt-3 pt-2 border-t border-[rgb(var(--border))]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-400">Today's Progress</span>
+                      <span className="font-semibold text-blue-400">
+                        {(() => {
+                          const totalItems = activities.todosCount + activities.totalHabits + activities.totalRoutines;
+                          const completedItems = activities.habitsCompleted + activities.routinesCompleted;
+                          if (totalItems === 0) return '0%';
+                          return Math.round((completedItems / totalItems) * 100) + '%';
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>
