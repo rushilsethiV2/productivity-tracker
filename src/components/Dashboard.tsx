@@ -9,12 +9,18 @@ import KanbanBoard from './KanbanBoard';
 import StatCard from './StatCard';
 import StreakChart from './StreakChart';
 import CalendarWidget from './CalendarWidget';
+import WorkoutBanner from './WorkoutBanner';
 
-export default function Dashboard() {
+interface DashboardProps {
+  onNavigateApp?: (app: string) => void;
+}
+
+export default function Dashboard({ onNavigateApp }: DashboardProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     refreshData();
@@ -163,14 +169,16 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             <StreakChart habits={habits} />
           </div>
-          <div>
+          <div className="space-y-6">
             <CalendarWidget
               todos={todos}
               habits={habits}
               routines={routines}
               currentDate={currentDate}
               onDateChange={setCurrentDate}
+              key={refreshKey}
             />
+            <WorkoutBanner onNavigate={onNavigateApp} />
           </div>
         </div>
 

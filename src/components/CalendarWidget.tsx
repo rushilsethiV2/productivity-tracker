@@ -71,10 +71,10 @@ export default function CalendarWidget({
         r.lastPerformed && r.lastPerformed.split('T')[0] === dateStr
       );
       routinesForDay = completedRoutines;
-      routinesCompleted = completedRoutines.length;
+      routinesCompleted = completedRoutines.length > 0 ? 1 : 0;
 
       if (isToday && routines.length > 0) {
-        routinesPending = routines.length - routinesCompleted;
+        routinesPending = routinesCompleted === 0 ? 1 : 0;
       }
     }
 
@@ -86,11 +86,11 @@ export default function CalendarWidget({
       habitsCount: habitsForDay.length,
       habitsCompleted,
       habitsPending,
-      routinesCount: routinesForDay.length,
+      routinesCount: routinesForDay.length > 0 ? 1 : 0,
       routinesCompleted,
       routinesPending,
       totalHabits: habits.length,
-      totalRoutines: routines.length,
+      totalRoutines: routines.length > 0 ? 1 : 0,
       hasActivity: todosForDay.length > 0 || habitsForDay.length > 0 || routinesForDay.length > 0 || (isToday && (habitsPending > 0 || routinesPending > 0)),
       isFutureDate,
       isToday,

@@ -80,7 +80,7 @@ function App() {
         theme="dark"
       />
 
-      {currentApp === 'dashboard' && <Dashboard />}
+      {currentApp === 'dashboard' && <Dashboard onNavigateApp={handleNavigateApp} />}
 
       {currentApp === 'exercise' && (
         <>
