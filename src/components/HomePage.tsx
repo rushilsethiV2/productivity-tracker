@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Dumbbell, Calendar, Clock, Plus } from 'lucide-react';
-import { Routine } from '../types';
+import { Routine, WeeklyRoutine } from '../types';
+import { loadWeeklyRoutines } from '../services/storageService';
 
 interface HomePageProps {
   routines: Routine[];
@@ -7,8 +9,13 @@ interface HomePageProps {
 }
 
 export default function HomePage({ routines, onNavigate }: HomePageProps) {
+  const [weeklyRoutines, setWeeklyRoutines] = useState<WeeklyRoutine[]>([]);
+
+  useEffect(() => {
+    setWeeklyRoutines(loadWeeklyRoutines());
+  }, []);
+
   const dailyRoutines = routines.filter(r => r.type === 'daily');
-  const weeklyRoutines = routines.filter(r => r.type === 'weekly');
 
   return (
     <div className="min-h-screen p-6 pb-24 md:pl-24">
@@ -24,17 +31,33 @@ export default function HomePage({ routines, onNavigate }: HomePageProps) {
         </header>
 
         <div className="grid gap-6 mb-8">
-          <div
-            onClick={() => onNavigate('create')}
-            className="bg-[rgb(var(--card))] hover:bg-[rgb(var(--card-hover))] border border-[rgb(var(--border))] rounded-xl p-6 cursor-pointer transition-all hover:scale-105 hover:border-blue-500"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/20 rounded-lg">
-                <Plus className="w-8 h-8 text-blue-400" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              onClick={() => onNavigate('create')}
+              className="bg-[rgb(var(--card))] hover:bg-[rgb(var(--card-hover))] border border-[rgb(var(--border))] rounded-xl p-6 cursor-pointer transition-all hover:scale-105 hover:border-yellow-500"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-yellow-500/20 rounded-lg">
+                  <Clock className="w-8 h-8 text-yellow-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Daily Routine</h2>
+                  <p className="text-gray-400">Single workout session</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold mb-1">Create New Routine</h2>
-                <p className="text-gray-400">Build a custom workout routine</p>
+            </div>
+            <div
+              onClick={() => onNavigate('create-weekly')}
+              className="bg-[rgb(var(--card))] hover:bg-[rgb(var(--card-hover))] border border-[rgb(var(--border))] rounded-xl p-6 cursor-pointer transition-all hover:scale-105 hover:border-blue-500"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500/20 rounded-lg">
+                  <Calendar className="w-8 h-8 text-blue-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Weekly Routine</h2>
+                  <p className="text-gray-400">Day-wise workout plan</p>
+                </div>
               </div>
             </div>
           </div>
@@ -69,7 +92,7 @@ export default function HomePage({ routines, onNavigate }: HomePageProps) {
             ) : (
               <div className="grid gap-3">
                 {weeklyRoutines.map(routine => (
-                  <RoutineCard
+                  <WeeklyRoutineCard
                     key={routine.id}
                     routine={routine}
                     onNavigate={onNavigate}
@@ -105,6 +128,36 @@ function RoutineCard({ routine, onNavigate }: { routine: Routine; onNavigate: (p
         className="mt-3 w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all"
       >
         Start Workout
+      </button>
+    </div>
+  );
+}
+
+function WeeklyRoutineCard({ routine, onNavigate }: { routine: WeeklyRoutine; onNavigate: (page: string, routineId?: string) => void }) {
+  const workoutDays = routine.weeklyPlan.filter(p => !p.isRestDay && p.exercises.length > 0).length;
+  const restDays = routine.weeklyPlan.filter(p => p.isRestDay).length;
+
+  return (
+    <div
+      onClick={() => onNavigate('weekly-routine-detail', routine.id)}
+      className="bg-[rgb(var(--background))] border border-[rgb(var(--border))] rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-all hover:scale-102"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <Calendar className="w-5 h-5 text-blue-400" />
+        <h3 className="font-semibold text-lg">{routine.name}</h3>
+      </div>
+      <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+        <span>{workoutDays} workout days</span>
+        <span>{restDays} rest days</span>
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onNavigate('weekly-routine-detail', routine.id);
+        }}
+        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all"
+      >
+        View Schedule
       </button>
     </div>
   );

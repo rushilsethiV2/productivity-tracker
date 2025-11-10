@@ -30,6 +30,23 @@ export interface Routine {
   lastPerformed?: string;
 }
 
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface DailyWorkoutPlan {
+  day: DayOfWeek;
+  isRestDay: boolean;
+  exercises: RoutineExercise[];
+}
+
+export interface WeeklyRoutine {
+  id: string;
+  name: string;
+  type: 'weekly';
+  weeklyPlan: DailyWorkoutPlan[];
+  createdAt: string;
+  lastPerformedDays?: { [key in DayOfWeek]?: string };
+}
+
 export interface WorkoutSession {
   routineId: string;
   startTime: string;

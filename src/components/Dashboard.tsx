@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, TrendingUp, Flame, CheckCircle, Dumbbell, Target, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { loadTodos } from '../services/todoService';
 import { loadHabits, loadHabitEntries, getHabitEntry } from '../services/habitService';
-import { loadRoutines } from '../services/storageService';
+import { loadRoutines, loadWeeklyRoutines } from '../services/storageService';
 import { loadCollections, loadNotes } from '../services/notesService';
-import { Todo, Habit, Routine } from '../types';
+import { Todo, Habit, Routine, WeeklyRoutine } from '../types';
 import KanbanBoard from './KanbanBoard';
 import StatCard from './StatCard';
 import StreakChart from './StreakChart';
@@ -19,6 +19,7 @@ export default function Dashboard({ onNavigateApp }: DashboardProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [weeklyRoutines, setWeeklyRoutines] = useState<WeeklyRoutine[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -30,6 +31,7 @@ export default function Dashboard({ onNavigateApp }: DashboardProps) {
     setTodos(loadTodos());
     setHabits(loadHabits());
     setRoutines(loadRoutines());
+    setWeeklyRoutines(loadWeeklyRoutines());
   };
 
   const getNotesCount = () => {
@@ -56,12 +58,14 @@ export default function Dashboard({ onNavigateApp }: DashboardProps) {
 
     const notesCount = getNotesCount();
 
+    const totalRoutinesCount = routines.length + weeklyRoutines.length;
+
     return {
       activeTodos: activeTodos.length,
       completedToday: completedToday.length,
       totalHabits: habits.length,
       completedHabits: todayHabits.length,
-      totalRoutines: routines.length,
+      totalRoutines: totalRoutinesCount,
       currentStreak,
       longestStreak,
       totalCollections: notesCount.collections,

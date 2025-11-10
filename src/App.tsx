@@ -4,16 +4,19 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import HomePage from './components/HomePage';
 import CreateRoutine from './components/CreateRoutine';
+import CreateWeeklyRoutine from './components/CreateWeeklyRoutine';
 import WorkoutPlayer from './components/WorkoutPlayer';
+import WeeklyWorkoutPlayer from './components/WeeklyWorkoutPlayer';
 import RoutineDetail from './components/RoutineDetail';
+import WeeklyRoutineDetail from './components/WeeklyRoutineDetail';
 import TodoList from './components/TodoList';
 import HabitTracker from './components/HabitTracker';
 import Notes from './components/Notes';
-import { Routine } from './types';
-import { loadRoutines, getRoutineById } from './services/storageService';
+import { Routine, DayOfWeek } from './types';
+import { loadRoutines, getRoutineById, getWeeklyRoutineById } from './services/storageService';
 import { loadExercises } from './services/exerciseService';
 
-type Page = 'home' | 'create' | 'workout' | 'routine-detail';
+type Page = 'home' | 'create' | 'create-weekly' | 'workout' | 'workout-weekly' | 'routine-detail' | 'weekly-routine-detail';
 type AppType = 'dashboard' | 'exercise' | 'todos' | 'habits' | 'notes';
 
 function App() {
@@ -21,6 +24,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<DayOfWeek | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -33,10 +37,13 @@ function App() {
     initApp();
   }, []);
 
-  const handleNavigate = (page: string, routineId?: string) => {
+  const handleNavigate = (page: string, routineId?: string, day?: DayOfWeek) => {
     setCurrentPage(page as Page);
     if (routineId) {
       setSelectedRoutineId(routineId);
+    }
+    if (day) {
+      setSelectedDay(day);
     }
   };
 
@@ -44,6 +51,7 @@ function App() {
     setCurrentApp(app as AppType);
     setCurrentPage('home');
     setSelectedRoutineId(null);
+    setSelectedDay(null);
   };
 
   const refreshRoutines = () => {
@@ -63,6 +71,7 @@ function App() {
   }
 
   const selectedRoutine = selectedRoutineId ? getRoutineById(selectedRoutineId) : null;
+  const selectedWeeklyRoutine = selectedRoutineId ? getWeeklyRoutineById(selectedRoutineId) : null;
 
   return (
     <>
@@ -93,6 +102,12 @@ function App() {
               handleNavigate(page);
             }} />
           )}
+          {currentPage === 'create-weekly' && (
+            <CreateWeeklyRoutine onNavigate={(page) => {
+              refreshRoutines();
+              handleNavigate(page);
+            }} />
+          )}
           {currentPage === 'workout' && selectedRoutine && (
             <WorkoutPlayer
               routine={selectedRoutine}
@@ -102,9 +117,26 @@ function App() {
               }}
             />
           )}
+          {currentPage === 'workout-weekly' && selectedWeeklyRoutine && selectedDay && (
+            <WeeklyWorkoutPlayer
+              routine={selectedWeeklyRoutine}
+              day={selectedDay}
+              onNavigate={(page) => {
+                refreshRoutines();
+                handleNavigate(page);
+              }}
+            />
+          )}
           {currentPage === 'routine-detail' && selectedRoutine && (
             <RoutineDetail
               routine={selectedRoutine}
+              onNavigate={handleNavigate}
+              onDelete={refreshRoutines}
+            />
+          )}
+          {currentPage === 'weekly-routine-detail' && selectedWeeklyRoutine && (
+            <WeeklyRoutineDetail
+              routine={selectedWeeklyRoutine}
               onNavigate={handleNavigate}
               onDelete={refreshRoutines}
             />

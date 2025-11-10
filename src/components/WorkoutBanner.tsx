@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dumbbell, Zap, Heart, AlertCircle, Check } from 'lucide-react';
-import { Routine } from '../types';
-import { loadRoutines, updateRoutine } from '../services/storageService';
+import { Routine, WeeklyRoutine, DayOfWeek } from '../types';
+import { loadRoutines, updateRoutine, loadWeeklyRoutines } from '../services/storageService';
 
 interface WorkoutBannerProps {
   onNavigate?: (app: string) => void;
@@ -36,6 +36,7 @@ const REST_DAY_TIPS = [
 
 export default function WorkoutBanner({ onNavigate }: WorkoutBannerProps) {
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [weeklyRoutines, setWeeklyRoutines] = useState<WeeklyRoutine[]>([]);
   const [workoutCompleted, setWorkoutCompleted] = useState(false);
   const [isRestDay, setIsRestDay] = useState(false);
 
@@ -47,10 +48,17 @@ export default function WorkoutBanner({ onNavigate }: WorkoutBannerProps) {
     return () => clearInterval(timer);
   }, []);
 
+  const getCurrentDay = (): DayOfWeek => {
+    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
+  };
+
   const loadWorkoutData = () => {
     const loaded = loadRoutines();
+    const loadedWeekly = loadWeeklyRoutines();
     setRoutines(loaded);
-    checkTodayCompletion(loaded);
+    setWeeklyRoutines(loadedWeekly);
+    checkTodayCompletion(loaded, loadedWeekly);
   };
 
   const checkResetTime = () => {
@@ -74,15 +82,32 @@ export default function WorkoutBanner({ onNavigate }: WorkoutBannerProps) {
     }
   };
 
-  const checkTodayCompletion = (loadedRoutines: Routine[]) => {
+  const checkTodayCompletion = (loadedRoutines: Routine[], loadedWeekly: WeeklyRoutine[]) => {
     const today = new Date().toISOString().split('T')[0];
-    const completedToday = loadedRoutines.some(
+    const currentDay = getCurrentDay();
+
+    const dailyCompleted = loadedRoutines.some(
       r => r.lastPerformed && r.lastPerformed.split('T')[0] === today
     );
-    setWorkoutCompleted(completedToday);
 
-    const isRestToday = localStorage.getItem(`rest_day_${today}`);
-    setIsRestDay(isRestToday === 'true');
+    const weeklyCompleted = loadedWeekly.some(wr => {
+      const dayPlan = wr.weeklyPlan.find(p => p.day === currentDay);
+      if (!dayPlan || dayPlan.isRestDay || dayPlan.exercises.length === 0) {
+        return true;
+      }
+      return wr.lastPerformedDays?.[currentDay] &&
+             wr.lastPerformedDays[currentDay].split('T')[0] === today;
+    });
+
+    const hasWeeklyRestDay = loadedWeekly.some(wr => {
+      const dayPlan = wr.weeklyPlan.find(p => p.day === currentDay);
+      return dayPlan?.isRestDay;
+    });
+
+    setWorkoutCompleted(dailyCompleted || weeklyCompleted);
+
+    const isRestToday = localStorage.getItem(`rest_day_${today}`) === 'true' || hasWeeklyRestDay;
+    setIsRestDay(isRestToday);
   };
 
   const handleWorkoutComplete = () => {
@@ -102,7 +127,7 @@ export default function WorkoutBanner({ onNavigate }: WorkoutBannerProps) {
     setIsRestDay(true);
   };
 
-  if (routines.length === 0) {
+  if (routines.length === 0 && weeklyRoutines.length === 0) {
     return (
       <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-6">
         <div className="flex items-start gap-4">
