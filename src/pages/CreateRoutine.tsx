@@ -1,31 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Search, Trash2, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Search, Trash2, Calendar, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Exercise, WeeklyRoutine, DailyWorkoutPlan, RoutineExercise, DayOfWeek } from '../types';
+import { Exercise, Routine, RoutineExercise } from '../types';
 import { loadExercises, getExerciseImagePath } from '../services/exerciseService';
-import { addWeeklyRoutine } from '../services/storageService';
+import { addRoutine } from '../services/storageService';
 
-interface CreateWeeklyRoutineProps {
-  onNavigate: (page: string) => void;
-}
-
-const DAYS_OF_WEEK: { key: DayOfWeek; label: string }[] = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'Wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
-];
-
-export default function CreateWeeklyRoutine({ onNavigate }: CreateWeeklyRoutineProps) {
+export default function CreateRoutine() {
+  const navigate = useNavigate();
   const [routineName, setRoutineName] = useState('');
+  const [routineType, setRoutineType] = useState<'daily' | 'weekly'>('daily');
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>('monday');
-  const [weeklyPlan, setWeeklyPlan] = useState<DailyWorkoutPlan[]>(
-    DAYS_OF_WEEK.map(d => ({ day: d.key, isRestDay: false, exercises: [] }))
-  );
+  const [selectedExercises, setSelectedExercises] = useState<RoutineExercise[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showExercisePicker, setShowExercisePicker] = useState(false);
 
@@ -38,8 +24,6 @@ export default function CreateWeeklyRoutine({ onNavigate }: CreateWeeklyRoutineP
     ex.primaryMuscles.some(m => m.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const currentDayPlan = weeklyPlan.find(p => p.day === selectedDay)!;
-
   const addExercise = (exercise: Exercise) => {
     const newRoutineExercise: RoutineExercise = {
       exerciseId: exercise.id,
@@ -48,44 +32,19 @@ export default function CreateWeeklyRoutine({ onNavigate }: CreateWeeklyRoutineP
       repsPerSet: 10,
       restBetweenSets: 60,
     };
-
-    setWeeklyPlan(prev => prev.map(plan =>
-      plan.day === selectedDay
-        ? { ...plan, exercises: [...plan.exercises, newRoutineExercise] }
-        : plan
-    ));
-
+    setSelectedExercises([...selectedExercises, newRoutineExercise]);
     setShowExercisePicker(false);
     setSearchQuery('');
   };
 
-  const removeExercise = (dayIndex: number) => {
-    setWeeklyPlan(prev => prev.map(plan =>
-      plan.day === selectedDay
-        ? { ...plan, exercises: plan.exercises.filter((_, i) => i !== dayIndex) }
-        : plan
-    ));
+  const removeExercise = (index: number) => {
+    setSelectedExercises(selectedExercises.filter((_, i) => i !== index));
   };
 
-  const updateExercise = (dayIndex: number, updates: Partial<RoutineExercise>) => {
-    setWeeklyPlan(prev => prev.map(plan =>
-      plan.day === selectedDay
-        ? {
-            ...plan,
-            exercises: plan.exercises.map((ex, i) =>
-              i === dayIndex ? { ...ex, ...updates } : ex
-            ),
-          }
-        : plan
-    ));
-  };
-
-  const toggleRestDay = (day: DayOfWeek) => {
-    setWeeklyPlan(prev => prev.map(plan =>
-      plan.day === day
-        ? { ...plan, isRestDay: !plan.isRestDay, exercises: !plan.isRestDay ? [] : plan.exercises }
-        : plan
-    ));
+  const updateExercise = (index: number, updates: Partial<RoutineExercise>) => {
+    const updated = [...selectedExercises];
+    updated[index] = { ...updated[index], ...updates };
+    setSelectedExercises(updated);
   };
 
   const saveRoutine = () => {
@@ -94,36 +53,35 @@ export default function CreateWeeklyRoutine({ onNavigate }: CreateWeeklyRoutineP
       return;
     }
 
-    const hasAtLeastOneWorkoutDay = weeklyPlan.some(plan => !plan.isRestDay && plan.exercises.length > 0);
-    if (!hasAtLeastOneWorkoutDay) {
-      toast.error('Please add at least one workout day with exercises');
+    if (selectedExercises.length === 0) {
+      toast.error('Please add at least one exercise');
       return;
     }
 
-    const routine: WeeklyRoutine = {
+    const routine: Routine = {
       id: Date.now().toString(),
       name: routineName,
-      type: 'weekly',
-      weeklyPlan,
+      type: routineType,
+      exercises: selectedExercises,
       createdAt: new Date().toISOString(),
     };
 
-    addWeeklyRoutine(routine);
-    toast.success('Weekly routine created successfully!');
-    onNavigate('home');
+    addRoutine(routine);
+    toast.success('Routine created successfully!');
+    navigate('/exercise');
   };
 
   return (
     <div className="min-h-screen p-6 pb-24 md:pl-24">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="p-2 hover:bg-[rgb(var(--card))] rounded-lg transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-3xl font-bold">Create Weekly Routine</h1>
+          <h1 className="text-3xl font-bold">Create Routine</h1>
         </div>
 
         <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-6 mb-6">
@@ -137,115 +95,75 @@ export default function CreateWeeklyRoutine({ onNavigate }: CreateWeeklyRoutineP
               className="w-full bg-[rgb(var(--background))] border border-[rgb(var(--border))] rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
             />
           </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Routine Type</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setRoutineType('daily')}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border transition-all ${
+                  routineType === 'daily'
+                    ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
+                    : 'bg-[rgb(var(--background))] border-[rgb(var(--border))] hover:border-yellow-500'
+                }`}
+              >
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">Daily</span>
+              </button>
+              <button
+                onClick={() => setRoutineType('weekly')}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg border transition-all ${
+                  routineType === 'weekly'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                    : 'bg-[rgb(var(--background))] border-[rgb(var(--border))] hover:border-blue-500'
+                }`}
+              >
+                <Calendar className="w-5 h-5" />
+                <span className="font-medium">Weekly</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div className="lg:col-span-1">
-            <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar className="w-5 h-5 text-blue-400" />
-                <h2 className="font-semibold">Days</h2>
-              </div>
-              <div className="space-y-2">
-                {DAYS_OF_WEEK.map(({ key, label }) => {
-                  const plan = weeklyPlan.find(p => p.day === key)!;
-                  const isActive = selectedDay === key;
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedDay(key)}
-                      className={`w-full text-left p-3 rounded-lg transition-all ${
-                        isActive
-                          ? 'bg-blue-500/20 border border-blue-500'
-                          : 'bg-[rgb(var(--background))] border border-[rgb(var(--border))] hover:border-blue-500'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{label}</span>
-                        {plan.isRestDay ? (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-                            Rest
-                          </span>
-                        ) : (
-                          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-                            {plan.exercises.length}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+        <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Exercises</h2>
+            <button
+              onClick={() => setShowExercisePicker(true)}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Exercise
+            </button>
           </div>
 
-          <div className="lg:col-span-3">
-            <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">
-                  {DAYS_OF_WEEK.find(d => d.key === selectedDay)?.label}
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toggleRestDay(selectedDay)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      currentDayPlan.isRestDay
-                        ? 'bg-green-500/20 text-green-400 border border-green-500'
-                        : 'bg-[rgb(var(--background))] border border-[rgb(var(--border))] hover:border-green-500'
-                    }`}
-                  >
-                    {currentDayPlan.isRestDay ? 'Rest Day' : 'Mark as Rest Day'}
-                  </button>
-                  {!currentDayPlan.isRestDay && (
-                    <button
-                      onClick={() => setShowExercisePicker(true)}
-                      className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add Exercise
-                    </button>
-                  )}
-                </div>
-              </div>
+          {selectedExercises.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No exercises added yet</p>
+          ) : (
+            <div className="space-y-3">
+              {selectedExercises.map((routineEx, index) => {
+                const exercise = exercises.find(ex => ex.id === routineEx.exerciseId);
+                if (!exercise) return null;
 
-              {currentDayPlan.isRestDay ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Calendar className="w-8 h-8 text-green-400" />
-                  </div>
-                  <p className="text-lg font-semibold mb-2">Rest Day</p>
-                  <p className="text-gray-400 text-sm">Recovery is important for progress</p>
-                </div>
-              ) : currentDayPlan.exercises.length === 0 ? (
-                <p className="text-gray-400 text-center py-12">No exercises added for this day</p>
-              ) : (
-                <div className="space-y-3">
-                  {currentDayPlan.exercises.map((routineEx, index) => {
-                    const exercise = exercises.find(ex => ex.id === routineEx.exerciseId);
-                    if (!exercise) return null;
-
-                    return (
-                      <ExerciseConfig
-                        key={index}
-                        exercise={exercise}
-                        routineExercise={routineEx}
-                        onUpdate={(updates) => updateExercise(index, updates)}
-                        onRemove={() => removeExercise(index)}
-                      />
-                    );
-                  })}
-                </div>
-              )}
+                return (
+                  <ExerciseConfig
+                    key={index}
+                    exercise={exercise}
+                    routineExercise={routineEx}
+                    onUpdate={(updates) => updateExercise(index, updates)}
+                    onRemove={() => removeExercise(index)}
+                  />
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
 
         <button
           onClick={saveRoutine}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 rounded-xl transition-all"
         >
-          Save Weekly Routine
+          Save Routine
         </button>
 
         {showExercisePicker && (

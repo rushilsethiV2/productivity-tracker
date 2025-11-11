@@ -1,14 +1,9 @@
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Trash2, Play, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { WeeklyRoutine, DayOfWeek } from '../types';
+import { DayOfWeek } from '../types';
 import { getExerciseById, getExerciseImagePath } from '../services/exerciseService';
-import { deleteWeeklyRoutine } from '../services/storageService';
-
-interface WeeklyRoutineDetailProps {
-  routine: WeeklyRoutine;
-  onNavigate: (page: string, routineId?: string, day?: DayOfWeek) => void;
-  onDelete: () => void;
-}
+import { deleteWeeklyRoutine, getWeeklyRoutineById } from '../services/storageService';
 
 const DAYS_OF_WEEK: { key: DayOfWeek; label: string }[] = [
   { key: 'monday', label: 'Monday' },
@@ -20,7 +15,19 @@ const DAYS_OF_WEEK: { key: DayOfWeek; label: string }[] = [
   { key: 'sunday', label: 'Sunday' },
 ];
 
-export default function WeeklyRoutineDetail({ routine, onNavigate, onDelete }: WeeklyRoutineDetailProps) {
+export default function WeeklyRoutineDetail() {
+  const navigate = useNavigate();
+  const { routineId } = useParams<{ routineId: string }>();
+  const routine = routineId ? getWeeklyRoutineById(routineId) : null;
+
+  if (!routine) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">Weekly routine not found</p>
+      </div>
+    );
+  }
+
   const handleDelete = () => {
     toast(
       ({ closeToast }) => (
@@ -31,10 +38,9 @@ export default function WeeklyRoutineDetail({ routine, onNavigate, onDelete }: W
             <button
               onClick={() => {
                 deleteWeeklyRoutine(routine.id);
-                onDelete();
                 closeToast();
                 toast.success('Weekly routine deleted successfully');
-                onNavigate('home');
+                navigate('/exercise');
               }}
               className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
             >
@@ -69,7 +75,7 @@ export default function WeeklyRoutineDetail({ routine, onNavigate, onDelete }: W
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="p-2 hover:bg-[rgb(var(--card))] rounded-lg transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -97,7 +103,7 @@ export default function WeeklyRoutineDetail({ routine, onNavigate, onDelete }: W
                 Today's Workout: {DAYS_OF_WEEK.find(d => d.key === getCurrentDay())?.label}
               </p>
               <button
-                onClick={() => onNavigate('workout-weekly', routine.id, getCurrentDay())}
+                onClick={() => navigate(`/exercise/workout-weekly/${routine.id}/${getCurrentDay()}`)}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 <Play className="w-5 h-5" />
@@ -156,7 +162,7 @@ export default function WeeklyRoutineDetail({ routine, onNavigate, onDelete }: W
                           {plan.exercises.length} exercises
                         </span>
                         <button
-                          onClick={() => onNavigate('workout-weekly', routine.id, key)}
+                          onClick={() => navigate(`/exercise/workout-weekly/${routine.id}/${key}`)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
                         >
                           <Play className="w-4 h-4" />

@@ -1,17 +1,23 @@
-import { useState } from 'react';
-import { ArrowLeft, Trash2, Edit2, Play } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Trash2, Play } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Routine, Exercise } from '../types';
+import { Exercise } from '../types';
 import { getExerciseById, getExerciseImagePath } from '../services/exerciseService';
-import { deleteRoutine } from '../services/storageService';
+import { deleteRoutine, getRoutineById } from '../services/storageService';
 
-interface RoutineDetailProps {
-  routine: Routine;
-  onNavigate: (page: string, routineId?: string) => void;
-  onDelete: () => void;
-}
+export default function RoutineDetail() {
+  const navigate = useNavigate();
+  const { routineId } = useParams<{ routineId: string }>();
+  const routine = routineId ? getRoutineById(routineId) : null;
 
-export default function RoutineDetail({ routine, onNavigate, onDelete }: RoutineDetailProps) {
+  if (!routine) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">Routine not found</p>
+      </div>
+    );
+  }
+
   const handleDelete = () => {
     toast(
       ({ closeToast }) => (
@@ -22,10 +28,9 @@ export default function RoutineDetail({ routine, onNavigate, onDelete }: Routine
             <button
               onClick={() => {
                 deleteRoutine(routine.id);
-                onDelete();
                 closeToast();
                 toast.success('Routine deleted successfully');
-                onNavigate('home');
+                navigate('/exercise');
               }}
               className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors text-sm font-medium"
             >
@@ -53,7 +58,7 @@ export default function RoutineDetail({ routine, onNavigate, onDelete }: Routine
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="p-2 hover:bg-[rgb(var(--card))] rounded-lg transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -78,7 +83,7 @@ export default function RoutineDetail({ routine, onNavigate, onDelete }: Routine
             )}
           </div>
           <button
-            onClick={() => onNavigate('workout', routine.id)}
+            onClick={() => navigate(`/exercise/workout/${routine.id}`)}
             className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
           >
             <Play className="w-6 h-6" />

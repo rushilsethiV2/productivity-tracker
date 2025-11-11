@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Play, Pause, SkipForward, CheckCircle } from 'lucide-react';
-import { Routine, Exercise } from '../types';
+import { Routine } from '../types';
 import { getExerciseById, getExerciseImagePath } from '../services/exerciseService';
-import { updateRoutine, addSession } from '../services/storageService';
-
-interface WorkoutPlayerProps {
-  routine: Routine;
-  onNavigate: (page: string) => void;
-}
+import { updateRoutine, addSession, getRoutineById } from '../services/storageService';
 
 type WorkoutState = 'ready' | 'exercise' | 'rest' | 'completed';
 
-export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProps) {
+export default function WorkoutPlayer() {
+  const navigate = useNavigate();
+  const { routineId } = useParams<{ routineId: string }>();
+  const routine = routineId ? getRoutineById(routineId) : null;
+
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [state, setState] = useState<WorkoutState>('ready');
@@ -19,6 +19,14 @@ export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProp
   const [isPaused, setIsPaused] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [sessionStartTime] = useState(new Date().toISOString());
+
+  if (!routine) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">Routine not found</p>
+      </div>
+    );
+  }
 
   const currentRoutineExercise = routine.exercises[currentExerciseIndex];
   const currentExercise = currentRoutineExercise ? getExerciseById(currentRoutineExercise.exerciseId) : null;
@@ -132,7 +140,7 @@ export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProp
           </h1>
           <p className="text-gray-400 mb-8">Great job finishing your routine</p>
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 rounded-xl transition-all"
           >
             Back to Home
@@ -147,7 +155,7 @@ export default function WorkoutPlayer({ routine, onNavigate }: WorkoutPlayerProp
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="p-2 hover:bg-[rgb(var(--card))] rounded-lg transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />

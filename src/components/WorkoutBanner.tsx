@@ -90,23 +90,26 @@ export default function WorkoutBanner({ onNavigate }: WorkoutBannerProps) {
       r => r.lastPerformed && r.lastPerformed.split('T')[0] === today
     );
 
-    const weeklyCompleted = loadedWeekly.some(wr => {
-      const dayPlan = wr.weeklyPlan.find(p => p.day === currentDay);
-      if (!dayPlan || dayPlan.isRestDay || dayPlan.exercises.length === 0) {
-        return true;
-      }
-      return wr.lastPerformedDays?.[currentDay] &&
-             wr.lastPerformedDays[currentDay].split('T')[0] === today;
-    });
-
     const hasWeeklyRestDay = loadedWeekly.some(wr => {
       const dayPlan = wr.weeklyPlan.find(p => p.day === currentDay);
       return dayPlan?.isRestDay;
     });
 
-    setWorkoutCompleted(dailyCompleted || weeklyCompleted);
+    const weeklyCompleted = loadedWeekly.some(wr => {
+      const dayPlan = wr.weeklyPlan.find(p => p.day === currentDay);
+      if (!dayPlan || dayPlan.isRestDay || dayPlan.exercises.length === 0) {
+        return false;
+      }
+      return wr.lastPerformedDays?.[currentDay] &&
+             wr.lastPerformedDays[currentDay].split('T')[0] === today;
+    });
 
     const isRestToday = localStorage.getItem(`rest_day_${today}`) === 'true' || hasWeeklyRestDay;
+
+    setWorkoutCompleted(dailyCompleted || weeklyCompleted);
+    if (isRestToday && hasWeeklyRestDay) {
+      setWorkoutCompleted(true);
+    }
     setIsRestDay(isRestToday);
   };
 

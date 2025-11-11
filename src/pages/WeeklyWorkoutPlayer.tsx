@@ -1,18 +1,32 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Play, Pause, SkipForward, CheckCircle } from 'lucide-react';
-import { WeeklyRoutine, DayOfWeek, DailyWorkoutPlan, Exercise } from '../types';
+import { WeeklyRoutine, DayOfWeek } from '../types';
 import { getExerciseById, getExerciseImagePath } from '../services/exerciseService';
-import { updateWeeklyRoutine } from '../services/storageService';
-
-interface WeeklyWorkoutPlayerProps {
-  routine: WeeklyRoutine;
-  day: DayOfWeek;
-  onNavigate: (page: string) => void;
-}
+import { updateWeeklyRoutine, getWeeklyRoutineById } from '../services/storageService';
 
 type WorkoutState = 'ready' | 'exercise' | 'rest' | 'completed';
 
-export default function WeeklyWorkoutPlayer({ routine, day, onNavigate }: WeeklyWorkoutPlayerProps) {
+export default function WeeklyWorkoutPlayer() {
+  const navigate = useNavigate();
+  const { routineId, day } = useParams<{ routineId: string; day: DayOfWeek }>();
+  const routine = routineId ? getWeeklyRoutineById(routineId) : null;
+
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [state, setState] = useState<WorkoutState>('ready');
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+
+  if (!routine || !day) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">Routine or day not found</p>
+      </div>
+    );
+  }
+
   const dayPlan = routine.weeklyPlan.find(p => p.day === day);
 
   if (!dayPlan || dayPlan.isRestDay || dayPlan.exercises.length === 0) {
@@ -21,7 +35,7 @@ export default function WeeklyWorkoutPlayer({ routine, day, onNavigate }: Weekly
         <div className="text-center">
           <p className="text-gray-400 mb-4">No workout available for this day</p>
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors"
           >
             Back to Home
@@ -30,13 +44,6 @@ export default function WeeklyWorkoutPlayer({ routine, day, onNavigate }: Weekly
       </div>
     );
   }
-
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
-  const [state, setState] = useState<WorkoutState>('ready');
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
 
   const currentRoutineExercise = dayPlan.exercises[currentExerciseIndex];
   const currentExercise = currentRoutineExercise ? getExerciseById(currentRoutineExercise.exerciseId) : null;
@@ -148,7 +155,7 @@ export default function WeeklyWorkoutPlayer({ routine, day, onNavigate }: Weekly
             Great job finishing your {day} workout
           </p>
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 rounded-xl transition-all"
           >
             Back to Home
@@ -163,7 +170,7 @@ export default function WeeklyWorkoutPlayer({ routine, day, onNavigate }: Weekly
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/exercise')}
             className="p-2 hover:bg-[rgb(var(--card))] rounded-lg transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />

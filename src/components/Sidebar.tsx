@@ -1,12 +1,21 @@
 import { Dumbbell, CheckSquare, Calendar, ChevronRight, ChevronLeft, LayoutDashboard, BookOpen } from 'lucide-react';
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-interface SidebarProps {
-  currentApp: string;
-  onNavigateApp: (app: string) => void;
-}
+export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
+  const getCurrentApp = (): string => {
+    if (location.pathname === '/') return 'dashboard';
+    if (location.pathname.startsWith('/exercise')) return 'exercise';
+    if (location.pathname.startsWith('/todos')) return 'todos';
+    if (location.pathname.startsWith('/habits')) return 'habits';
+    if (location.pathname.startsWith('/notes')) return 'notes';
+    return 'dashboard';
+  };
+
+  const currentApp = getCurrentApp();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const apps = [
@@ -72,7 +81,7 @@ export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
               return (
                 <button
                   key={app.id}
-                  onClick={() => onNavigateApp(app.id)}
+                  onClick={() => navigate(app.id === 'dashboard' ? '/' : `/${app.id}`)}
                   className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all relative group ${
                     isActive
                       ? `bg-gradient-to-r ${getActiveColor(app.color)} text-white shadow-lg`
@@ -124,7 +133,7 @@ export default function Sidebar({ currentApp, onNavigateApp }: SidebarProps) {
             return (
               <button
                 key={app.id}
-                onClick={() => onNavigateApp(app.id)}
+                onClick={() => navigate(app.id === 'dashboard' ? '/' : `/${app.id}`)}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
                   isActive
                     ? `bg-gradient-to-r ${getActiveColor(app.color)} text-white shadow-lg`
