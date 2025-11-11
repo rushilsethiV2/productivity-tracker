@@ -13,6 +13,7 @@ import WeeklyRoutineDetail from './pages/WeeklyRoutineDetail';
 import TodoList from './components/TodoList';
 import HabitTracker from './components/HabitTracker';
 import Notes from './components/Notes';
+import AuthDropbox from './pages/AuthDropbox';
 import { loadExercises } from './services/exerciseService';
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
             <Route path="/todos" element={<TodoList />} />
             <Route path="/habits" element={<HabitTracker />} />
             <Route path="/notes" element={<Notes />} />
+            <Route path="/auth" element={<AuthDropbox />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
